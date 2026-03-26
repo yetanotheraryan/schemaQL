@@ -1,8 +1,8 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { getGitDiff } from './diff';
-import { extractAddedFields } from './parser';
+import { getGitDiffs } from './diff';
+import { extractModelChanges } from './parser';
 import { generateSQL } from './sql';
 
 // This method is called when your extension is activated
@@ -13,20 +13,13 @@ export function activate(context: vscode.ExtensionContext) {
 	  const disposable = vscode.commands.registerCommand(
     "schemashift.generateMigration",
     async () => {
-      const tableName = await vscode.window.showInputBox({
-        prompt: "Enter table name",
-        placeHolder: "users",
-      });
+      const fileDiffs = getGitDiffs();
+	  console.log("Git Diffs Start ------------:");
+	  console.log("Git Diffs:", fileDiffs);
+	  console.log("Git Diffs end ------------:");
 
-      if (!tableName) return;
-
-      const diff = getGitDiff();
-	  console.log("Git Diff STart ------------:");
-	  console.log("Git Diff:", diff);
-	  console.log("Git Diff end ------------:");
-
-      const addedFields = extractAddedFields(diff);
-      const sql = generateSQL(tableName, addedFields);
+      const modelChanges = extractModelChanges(fileDiffs);
+      const sql = generateSQL(modelChanges);
 
       // Show result
       const doc = await vscode.workspace.openTextDocument({
