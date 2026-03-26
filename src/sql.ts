@@ -45,6 +45,18 @@ function mapType(tsType: string): string {
   }
 }
 
+function mapNullability(field: FieldChange): string {
+  if (field.allowNull === true) {
+    return " NULL";
+  }
+
+  if (field.allowNull === false) {
+    return " NOT NULL";
+  }
+
+  return "";
+}
+
 function generateStatements(table: string, addedFields: FieldChange[]): string {
   if (addedFields.length === 0) {
     return "";
@@ -53,7 +65,7 @@ function generateStatements(table: string, addedFields: FieldChange[]): string {
   return addedFields
     .map(
       (f) =>
-        `ALTER TABLE ${table} ADD COLUMN ${f.field} ${mapType(f.type)};`
+        `ALTER TABLE ${table} ADD COLUMN ${f.field} ${mapType(f.type)}${mapNullability(f)};`
     )
     .join("\n");
 }
@@ -67,7 +79,10 @@ function generateCreateTableStatement(
   }
 
   const columns = fields
-    .map((field) => `  ${field.field} ${mapType(field.type)}`)
+    .map(
+      (field) =>
+        `  ${field.field} ${mapType(field.type)}${mapNullability(field)}`
+    )
     .join(",\n");
 
   return `CREATE TABLE ${table} (\n${columns}\n);`;

@@ -6,6 +6,7 @@ import { ChangedFileDiff } from "./diff";
 export type FieldChange = {
   field: string;
   type: string;
+  allowNull?: boolean;
 };
 
 export type ModelChange = {
@@ -26,6 +27,16 @@ function extractType(block: string): string | null {
   return typeMatch[1].replace(/\s+/g, "");
 }
 
+function extractAllowNull(block: string): boolean | undefined {
+  const allowNullMatch = block.match(/["'`]?allowNull["'`]?\s*:\s*(true|false)/i);
+
+  if (!allowNullMatch) {
+    return undefined;
+  }
+
+  return allowNullMatch[1].toLowerCase() === "true";
+}
+
 function extractAddedFields(diff: string): FieldChange[] {
   const results: FieldChange[] = [];
 
@@ -44,11 +55,13 @@ function extractAddedFields(diff: string): FieldChange[] {
     const snippet = diff.slice(startIndex, startIndex + 200);
 
     const type = extractType(snippet);
+    const allowNull = extractAllowNull(snippet);
 
     if (type) {
       results.push({
         field,
         type,
+        allowNull,
       });
     }
   }
@@ -76,11 +89,13 @@ function extractFieldsFromContent(fileContent: string): FieldChange[] {
     const field = match[1];
     const block = match[2];
     const type = extractType(block);
+    const allowNull = extractAllowNull(block);
 
     if (type) {
       results.push({
         field,
         type,
+        allowNull,
       });
     }
   }
