@@ -1,40 +1,57 @@
+<div align="center">
+
+<img src="./assets/icon.png" width="120" />
+
 # schemaQL
-<p align="center">
-  <img src="./assets/icon.png" width="120" />
-</p>
 
-schemaQL is a VS Code extension that turns Sequelize model changes into SQL migration statements.
+**Sequelize model diffs → SQL migrations. Instantly.**
 
-Instead of manually writing migration SQL after every model update, you can run one command and let schemaQL inspect your changed model files, detect schema additions, and generate the SQL for you in a new editor tab.
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Extension-007ACC?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](./LICENSE)
+[![Made for Sequelize](https://img.shields.io/badge/Made%20for-Sequelize-52B0E7?style=flat-square)](https://sequelize.org)
 
-## What It Does
+> Stop writing migration SQL by hand. schemaQL reads your git changes, finds your updated Sequelize models, and generates the SQL — right inside VS Code.
 
-schemaQL reads your current git changes and looks for Sequelize model updates.
+</div>
 
-It currently handles:
+---
 
-- New model files and generates `CREATE TABLE`
-- New columns added to existing models and generates `ALTER TABLE ... ADD COLUMN`
-- Table name resolution from `tableName`
-- Fallback to `modelName` when `tableName` is missing
-- Sequelize types like `INTEGER`, `BOOLEAN`, `STRING`, `STRING(300)`, `DECIMAL(10,2)`
-- Null handling from `allowNull: true` and `allowNull: false`
-- Multiple changed models in the same run
+## The problem it solves
 
-## How It Works
+You update a Sequelize model. Now you need a migration. So you open a new file, write `CREATE TABLE` or `ALTER TABLE`, copy-paste column names, map types manually, check nullability... and hope you didn't miss anything.
 
-When you run the command, schemaQL:
+**schemaQL eliminates that loop entirely.**
 
-1. Reads changed and untracked files from your git workspace
-2. Finds Sequelize model files that contain schema additions
-3. Detects whether a model is new or already existed
-4. Extracts table name from `tableName` or `modelName`
-5. Reads column types and nullability from the model definition
-6. Generates SQL and opens it in a VS Code editor
+---
 
-## Example
+## How it works
 
-Given a Sequelize model like this:
+```
+your git changes
+      │
+      ▼
+schemaQL reads changed model files
+      │
+      ▼
+detects new models / new columns
+      │
+      ▼
+SQL appears in a new editor tab ✨
+```
+
+Open the Command Palette and run:
+
+```
+schemaQL: Generate Migration
+```
+
+That's it.
+
+---
+
+## Quick example
+
+You add a new model:
 
 ```ts
 newtable.init(
@@ -55,7 +72,7 @@ newtable.init(
 );
 ```
 
-schemaQL generates SQL like:
+schemaQL generates:
 
 ```sql
 CREATE TABLE newtable (
@@ -64,7 +81,7 @@ CREATE TABLE newtable (
 );
 ```
 
-If you add a new column to an existing model:
+You add a new column to an existing model:
 
 ```ts
 newcol: {
@@ -79,74 +96,84 @@ schemaQL generates:
 ALTER TABLE your_table ADD COLUMN newcol VARCHAR(300) NOT NULL;
 ```
 
-## Supported Rules
+---
 
-### Table name
+## What it detects
 
-- Use `tableName` if present in the model options
-- If `tableName` is missing, use `modelName`
+| Scenario | Output |
+|---|---|
+| New model file | `CREATE TABLE ...` |
+| New column in existing model | `ALTER TABLE ... ADD COLUMN ...` |
+| Multiple models changed at once | One SQL block per model |
 
-### Type mapping
+---
 
-- `DataTypes.STRING` -> `VARCHAR(255)`
-- `DataTypes.STRING(300)` -> `VARCHAR(300)`
-- `DataTypes.CHAR(10)` -> `CHAR(10)`
-- `DataTypes.INTEGER` -> `INT`
-- `DataTypes.BOOLEAN` -> `BOOLEAN`
-- `DataTypes.DECIMAL(10,2)` -> `DECIMAL(10,2)`
+## Type mapping
 
-### Null handling
+| Sequelize | SQL |
+|---|---|
+| `DataTypes.STRING` | `VARCHAR(255)` |
+| `DataTypes.STRING(300)` | `VARCHAR(300)` |
+| `DataTypes.CHAR(10)` | `CHAR(10)` |
+| `DataTypes.INTEGER` | `INT` |
+| `DataTypes.BOOLEAN` | `BOOLEAN` |
+| `DataTypes.DECIMAL(10,2)` | `DECIMAL(10,2)` |
 
-- `allowNull: false` -> `NOT NULL`
-- `allowNull: true` -> `NULL`
-- If `allowNull` is omitted, schemaQL leaves nullability unspecified
+---
 
-## Command
+## Table name resolution
 
-Open the Command Palette in VS Code and run:
+schemaQL looks for `tableName` in your model options first. If it's missing, it falls back to `modelName`. No config needed.
 
-```text
-schemaQL: Generate Migration
-```
+---
 
-Command id:
+## Null handling
 
-```text
-schemaql.generateMigration
-```
+| Model definition | SQL output |
+|---|---|
+| `allowNull: false` | `NOT NULL` |
+| `allowNull: true` | `NULL` |
+| `allowNull` omitted | *(unspecified)* |
+
+---
 
 ## Requirements
 
 - A VS Code workspace must be open
-- Your project should use Sequelize-style models
-- The extension reads from git changes, so your schema updates should exist in the current working tree
+- Your project uses Sequelize-style `Model.init(...)` models
+- Schema changes exist in your current git working tree (staged or unstaged)
 
-## Current Scope
+---
 
-schemaQL is focused on generating SQL for added schema elements.
+## Command reference
 
-It is currently designed for:
+| | |
+|---|---|
+| **Command Palette** | `schemaQL: Generate Migration` |
+| **Command ID** | `schemaql.generateMigration` |
 
-- New model creation
-- New columns added to existing models
+---
 
-It does not yet fully handle:
+## Current scope
 
-- Column removal
-- Column rename detection
-- Type changes on existing columns
-- Constraint generation beyond basic nullability
-- Complex model definitions that do not follow standard Sequelize `Model.init(...)` structure
+schemaQL is focused and intentional. Right now it handles:
 
-## Why Use It
+- ✅ New model creation
+- ✅ New columns on existing models
+- ✅ `tableName` / `modelName` resolution
+- ✅ Core Sequelize types
+- ✅ Null constraint generation
+- ✅ Multiple changed models in a single run
 
-schemaQL speeds up a repetitive part of backend work:
+Not yet supported:
 
-- Fewer manual migration mistakes
-- Faster feedback while editing models
-- Easier review of schema intent
-- Useful when working on multiple model updates together
+- ⬜ Column removal
+- ⬜ Column renaming
+- ⬜ Type changes on existing columns
+- ⬜ Constraints beyond nullability
+- ⬜ Non-standard model definitions
 
+---
 
 ## License
 
