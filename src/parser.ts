@@ -37,6 +37,32 @@ function extractAllowNull(block: string): boolean | undefined {
   return allowNullMatch[1].toLowerCase() === "true";
 }
 
+function extractAddedFieldBlock(diff: string, startIndex: number): string {
+  const lines = diff.slice(startIndex).split("\n");
+  const collectedLines: string[] = [];
+  let braceDepth = 0;
+  let hasOpened = false;
+
+  for (const line of lines) {
+    collectedLines.push(line);
+
+    for (const char of line) {
+      if (char === "{") {
+        braceDepth += 1;
+        hasOpened = true;
+      } else if (char === "}") {
+        braceDepth -= 1;
+      }
+    }
+
+    if (hasOpened && braceDepth === 0) {
+      break;
+    }
+  }
+
+  return collectedLines.join("\n");
+}
+
 function extractAddedFields(diff: string): FieldChange[] {
   const results: FieldChange[] = [];
 
@@ -47,15 +73,9 @@ function extractAddedFields(diff: string): FieldChange[] {
 
   while ((match = fieldRegex.exec(diff)) !== null) {
     const field = match[1];
-
-    // Look ahead from this position to find the type inside the block
-    const startIndex = match.index;
-
-    // Slice next ~200 chars (enough for small field blocks)
-    const snippet = diff.slice(startIndex, startIndex + 200);
-
-    const type = extractType(snippet);
-    const allowNull = extractAllowNull(snippet);
+    const block = extractAddedFieldBlock(diff, match.index);
+    const type = extractType(block);
+    const allowNull = extractAllowNull(block);
 
     if (type) {
       results.push({
