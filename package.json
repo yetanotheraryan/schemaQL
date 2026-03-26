@@ -2,13 +2,17 @@
   "name": "schemaql",
   "displayName": "schemaQL: Sequelize to SQL",
   "description": "A smart tool which generates queries automatically whenever a model is changed.",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "engines": {
     "vscode": "^1.100.0"
   },
   "categories": [
     "Other"
   ],
+  "galleryBanner": {
+    "color": "#21214c",
+    "theme": "dark"
+  },
   "activationEvents": [],
   "repository": {
     "type": "git",
