@@ -1,71 +1,180 @@
-# schemashift README
+<div align="center">
 
-This is the README for your extension "schemashift". After writing up a brief description, we recommend including the following sections.
+<img src="./assets/icon.png" width="120" />
 
-## Features
+# schemaQL
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+**Sequelize model diffs → SQL migrations. Instantly.**
 
-For example if there is an image subfolder under your extension project workspace:
+[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Extension-007ACC?style=flat-square&logo=visual-studio-code)](https://marketplace.visualstudio.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](./LICENSE)
+[![Made for Sequelize](https://img.shields.io/badge/Made%20for-Sequelize-52B0E7?style=flat-square)](https://sequelize.org)
 
-\!\[feature X\]\(images/feature-x.png\)
+> Stop writing migration SQL by hand. schemaQL reads your git changes, finds your updated Sequelize models, and generates the SQL — right inside VS Code.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+</div>
 
 ---
 
-## Following extension guidelines
+## The problem it solves
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+You update a Sequelize model. Now you need a migration. So you open a new file, write `CREATE TABLE` or `ALTER TABLE`, copy-paste column names, map types manually, check nullability... and hope you didn't miss anything.
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+**schemaQL eliminates that loop entirely.**
 
-## Working with Markdown
+---
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+## How it works
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+```
+your git changes
+      │
+      ▼
+schemaQL reads changed model files
+      │
+      ▼
+detects new models / new columns
+      │
+      ▼
+SQL appears in a new editor tab ✨
+```
 
-## For more information
+Open the Command Palette and run:
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+```
+schemaQL: Generate Migration
+```
 
-**Enjoy!**
+That's it.
+
+---
+
+## Quick example
+
+You add a new model:
+
+```ts
+newtable.init(
+  {
+    name: {
+      type: DataTypes.STRING(300),
+      allowNull: false,
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
+  },
+  {
+    sequelize,
+    modelName: "newtable",
+  }
+);
+```
+
+schemaQL generates:
+
+```sql
+CREATE TABLE newtable (
+  name VARCHAR(300) NOT NULL,
+  isActive BOOLEAN NULL
+);
+```
+
+You add a new column to an existing model:
+
+```ts
+newcol: {
+  type: DataTypes.STRING(300),
+  allowNull: false,
+}
+```
+
+schemaQL generates:
+
+```sql
+ALTER TABLE your_table ADD COLUMN newcol VARCHAR(300) NOT NULL;
+```
+
+---
+
+## What it detects
+
+| Scenario | Output |
+|---|---|
+| New model file | `CREATE TABLE ...` |
+| New column in existing model | `ALTER TABLE ... ADD COLUMN ...` |
+| Multiple models changed at once | One SQL block per model |
+
+---
+
+## Type mapping
+
+| Sequelize | SQL |
+|---|---|
+| `DataTypes.STRING` | `VARCHAR(255)` |
+| `DataTypes.STRING(300)` | `VARCHAR(300)` |
+| `DataTypes.CHAR(10)` | `CHAR(10)` |
+| `DataTypes.INTEGER` | `INT` |
+| `DataTypes.BOOLEAN` | `BOOLEAN` |
+| `DataTypes.DECIMAL(10,2)` | `DECIMAL(10,2)` |
+
+---
+
+## Table name resolution
+
+schemaQL looks for `tableName` in your model options first. If it's missing, it falls back to `modelName`. No config needed.
+
+---
+
+## Null handling
+
+| Model definition | SQL output |
+|---|---|
+| `allowNull: false` | `NOT NULL` |
+| `allowNull: true` | `NULL` |
+| `allowNull` omitted | *(unspecified)* |
+
+---
+
+## Requirements
+
+- A VS Code workspace must be open
+- Your project uses Sequelize-style `Model.init(...)` models
+- Schema changes exist in your current git working tree (staged or unstaged)
+
+---
+
+## Command reference
+
+| | |
+|---|---|
+| **Command Palette** | `schemaQL: Generate Migration` |
+| **Command ID** | `schemaql.generateMigration` |
+
+---
+
+## Current scope
+
+schemaQL is focused and intentional. Right now it handles:
+
+- ✅ New model creation
+- ✅ New columns on existing models
+- ✅ `tableName` / `modelName` resolution
+- ✅ Core Sequelize types
+- ✅ Null constraint generation
+- ✅ Multiple changed models in a single run
+
+Not yet supported:
+
+- ⬜ Column removal
+- ⬜ Column renaming
+- ⬜ Type changes on existing columns
+- ⬜ Constraints beyond nullability
+- ⬜ Non-standard model definitions
+
+---
+
+## License
+
+[MIT](./LICENSE)
