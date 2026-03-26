@@ -11,7 +11,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	  const disposable = vscode.commands.registerCommand(
-    "schemashift.generateMigration",
+    "schemaql.generateMigration",
     async () => {
       const fileDiffs = getGitDiffs();
 	  console.log("Git Diffs Start ------------:");
